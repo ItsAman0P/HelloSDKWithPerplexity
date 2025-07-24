@@ -1,5 +1,7 @@
 package com.msg91.chatwidget.service
 
+import com.msg91.chatwidget.utils.LogUtil
+
 object CobrowseManager {
     private const val COBROWSE_LICENSE = "FZBGaF9-Od0GEQ"
 
@@ -7,14 +9,13 @@ object CobrowseManager {
         try {
             // Initialize cobrowse with UUID
             // You'll need to add cobrowse-sdk-android dependency
-            log("Registering for cobrowse with UUID: $uuid")
+            LogUtil.log("Registering for cobrowse with UUID: $uuid")
             // CobrowseIO.getInstance().license = COBROWSE_LICENSE
             // CobrowseIO.getInstance().customData = mapOf("device_id" to uuid)
             // CobrowseIO.getInstance().start()
         } catch (e: Exception) {
-            ApiService.log("Error registering cobrowse: ${e.message}")
+            LogUtil.log("Error registering cobrowse: ${e.message}")
         }
     }
 
-    private fun log(message: String) = ApiService.log(message)
 }

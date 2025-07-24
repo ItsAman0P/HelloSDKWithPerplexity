@@ -1,19 +1,13 @@
 package com.msg91.chatwidget.service
 
 import com.msg91.chatwidget.config.ApiUrls
+import com.msg91.chatwidget.utils.LogUtil
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
 object ApiService {
-    private const val IS_DEBUG = false
-
-    fun log(vararg args: Any) {
-        if (IS_DEBUG) {
-            println("[MSG91 HELLO SDK]: ${args.joinToString(" ")}")
-        }
-    }
 
     suspend fun generateUUID(token: String, body: Map<String, Any>): String? {
         return withContext(Dispatchers.IO) {
@@ -40,11 +34,11 @@ object ApiService {
                     val jsonResponse = JSONObject(response)
                     jsonResponse.optString("uuid", null)
                 } else {
-                    log("Error in generateUUID: HTTP $responseCode")
+                    LogUtil.log("Error in generateUUID: HTTP $responseCode")
                     null
                 }
             } catch (e: Exception) {
-                log("Error in generateUUID", e.message)
+                LogUtil.log("Error in generateUUID", e.message)
                 null
             }
         }
