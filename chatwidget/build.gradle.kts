@@ -33,7 +33,6 @@ android {
 }
 
 dependencies {
-    implementation(project(":chatwidget"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
