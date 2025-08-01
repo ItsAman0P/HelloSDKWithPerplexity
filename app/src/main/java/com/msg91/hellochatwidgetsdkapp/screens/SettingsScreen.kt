@@ -1,5 +1,7 @@
 package com.msg91.hellochatwidgetsdkapp.screens
 
+import android.view.ViewGroup
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -7,11 +9,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
+import com.msg91.chatwidget.ChatWidget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,11 +25,15 @@ fun SettingsScreen(navController: NavController) {
     var notificationsEnabled by remember { mutableStateOf(true) }
     var soundEnabled by remember { mutableStateOf(true) }
     var locationEnabled by remember { mutableStateOf(false) }
+    val helloConfig = mapOf(
+        "widgetToken" to "ec5d6",
+        "email" to "aman@example.com"
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text("Contact Us") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -33,84 +42,32 @@ fun SettingsScreen(navController: NavController) {
             )
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
+//                .padding(paddingValues)
+                .windowInsetsPadding(WindowInsets.ime) // This handles keyboard
         ) {
-            Text(
-                text = "App Settings",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 24.dp)
+            AndroidView(
+                factory = { context ->
+                    ChatWidget(
+                        context = context,
+                        helloConfig = helloConfig,
+//                    widgetColor = widgetColor,
+                        isCloseButtonVisible = false, // No close button in embedded mode
+                        useKeyboardAvoidingView = true
+                    ).apply {
+                        layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(Color(0xFFF5F5F5))
             )
-
-            // Theme Settings
-//            SettingsSection(title = "Appearance") {
-//                SettingsSwitchItem(
-//                    icon = Icons.Default.DarkMode,
-//                    title = "Dark Mode",
-//                    subtitle = "Enable dark theme",
-//                    checked = isDarkMode,
-//                    onCheckedChange = { isDarkMode = it }
-//                )
-//            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Notification Settings
-//            SettingsSection(title = "Notifications") {
-//                SettingsSwitchItem(
-//                    icon = Icons.Default.Notifications,
-//                    title = "Push Notifications",
-//                    subtitle = "Receive app notifications",
-//                    checked = notificationsEnabled,
-//                    onCheckedChange = { notificationsEnabled = it }
-//                )
-//
-//                SettingsSwitchItem(
-//                    icon = Icons.Default.VolumeUp,
-//                    title = "Sound",
-//                    subtitle = "Enable notification sounds",
-//                    checked = soundEnabled,
-//                    onCheckedChange = { soundEnabled = it }
-//                )
-//            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Privacy Settings
-            SettingsSection(title = "Privacy") {
-                SettingsSwitchItem(
-                    icon = Icons.Default.LocationOn,
-                    title = "Location Services",
-                    subtitle = "Allow location access",
-                    checked = locationEnabled,
-                    onCheckedChange = { locationEnabled = it }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Action Buttons
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    onClick = { navController.navigate("profile") },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Go to Profile")
-                }
-
-                OutlinedButton(
-                    onClick = { navController.navigate("home") },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Back to Home")
-                }
-            }
         }
     }
 }

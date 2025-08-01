@@ -44,12 +44,15 @@ class ChatWidget @JvmOverloads constructor(
     init {
 
         validateConfig()
-        setupStatusBar()
-        setupSystemBarInsets()
+//        setupStatusBar()
+//        setupSystemBarInsets()
         setupWebView()
         loadHtmlContent()
 //        applyKeyboardAvoiding()
         setupKeyboardAnimation() // ✅ smooth animation
+
+//        setupKeyboardInsets()
+//        setupSmoothKeyboardAnimation()
     }
 
     private fun validateConfig() {
@@ -90,6 +93,8 @@ class ChatWidget @JvmOverloads constructor(
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
             settings.javaScriptEnabled = true
             setBackgroundColor(Color.TRANSPARENT)
+            settings.allowFileAccess = true
+            settings.allowContentAccess = true
 //            webViewClient = WebViewClient()
 
             settings.domStorageEnabled = true
@@ -115,6 +120,8 @@ class ChatWidget @JvmOverloads constructor(
                         true
                     }
                 }
+
+
             }
         }
 
@@ -205,6 +212,7 @@ class ChatWidget @JvmOverloads constructor(
             }
         )
     }
+
 
     fun loadWidget() {
         loadHtmlContent();
