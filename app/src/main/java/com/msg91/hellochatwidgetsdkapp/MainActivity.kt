@@ -1,53 +1,56 @@
 package com.msg91.hellochatwidgetsdkapp
 
 import android.os.Bundle
+import android.widget.ImageButton
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
-import com.msg91.chatwidget.ChatWidget
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import com.msg91.chatwidget.ChatWidgetFragment
 
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import com.msg91.hellochatwidgetsdkapp.navigation.AppNavigation
-import com.msg91.hellochatwidgetsdkapp.ui.HelloChatWidgetSDKAppTheme
-
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            HelloChatWidgetSDKAppTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    AppNavigation()
-                }
-            }
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_main)
+        
+        // Handle window insets for edge-to-edge
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main_container)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+            
+            // Remove bottom padding when keyboard is visible to avoid extra space
+            v.setPadding(
+                systemBars.left, 
+                systemBars.top, 
+                systemBars.right, 
+                if (isImeVisible) 0 else systemBars.bottom
+            )
+            insets
+        }
+        
+        // Setup back button
+        findViewById<ImageButton>(R.id.btn_back).setOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
+        }
+
+        // Attach the ChatWidgetFragment only if not already added
+        if (savedInstanceState == null) {
+            val helloConfig = mapOf(
+                "widgetToken" to "ec5d6",
+                "email" to "aman@example.com"
+            )
+
+            val chatWidgetFragment = ChatWidgetFragment.newInstance(
+                helloConfig = helloConfig,
+                widgetColor = null,
+                isCloseButtonVisible = false, // No close button in embedded mode
+                useKeyboardAvoidingView = true
+            )
+
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, chatWidgetFragment)
+                .commit()
         }
     }
 }
-
-//class MainActivity : AppCompatActivity() {
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//
-//        WindowCompat.setDecorFitsSystemWindows(window, false)
-//
-//
-//        val chatView = ChatWidget(
-//            context = this,
-//            helloConfig = mapOf(
-//                "widgetToken" to "ec5d6",
-//                "email" to "aman@example.com"
-//            ),
-////            widgetColor = "#FFFFFF",
-//            isCloseButtonVisible = true
-//        )
-//        chatView.loadWidget()  // or loadHtml()
-//
-//        setContentView(chatView)
-//    }
-//}

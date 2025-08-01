@@ -123,10 +123,41 @@ object HtmlBuilder {
                         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'close' }));
                     }
                 }
+
+                // Test function to check if interface is working
+                function testInterface() {
+                    console.log("Testing interface availability...");
+                    console.log("window.ReactNativeWebView:", window.ReactNativeWebView);
+                    console.log("postMessage function:", window.ReactNativeWebView?.postMessage);
+                    
+                    if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+                        console.log("✅ Interface found! Sending test message...");
+                        window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                            type: 'test', 
+                            message: 'Interface test from JavaScript',
+                            timestamp: new Date().toISOString()
+                        }));
+                    } else {
+                        console.log("❌ Interface NOT found!");
+                        alert("Interface not available!");
+                    }
+                }
+
+                // Test interface when page loads
+                setTimeout(testInterface, 1000);
             </script>
         </head>
         <body onload="openChatIfReady()">
             $closeButtonHtml
+            
+            <!-- Debug test links -->
+            <div style="position: absolute; top: 60px; right: 10px; z-index: 999; background: white; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 12px;">Test Links:</h4>
+                <a href="https://google.com" style="display: block; font-size: 12px; margin-bottom: 5px;">🔗 Google (External)</a>
+                <a href="https://blacksea.msg91.com/test" style="display: block; font-size: 12px; margin-bottom: 5px;">🏠 Blacksea (Internal)</a>
+                <a href="javascript:testInterface()" style="display: block; font-size: 12px; margin-bottom: 5px;">🧪 Test Interface</a>
+            </div>
+            
             <div id="loader" class="loader-container">
                 <div class="spinner"><div></div><div></div><div></div></div>
                 <div class="loader-text">Loading chat...</div>

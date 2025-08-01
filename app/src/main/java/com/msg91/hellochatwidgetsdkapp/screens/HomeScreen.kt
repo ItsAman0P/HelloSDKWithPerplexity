@@ -10,10 +10,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.activity.ComponentActivity
 import androidx.navigation.NavController
+import com.msg91.hellochatwidgetsdkapp.components.UploadFileButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,6 +95,17 @@ fun HomeScreen(navController: NavController) {
                     Text("Go to Settings")
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Self-contained upload button with file picker
+            val context = LocalContext.current
+            AndroidView(
+                factory = { 
+                    UploadFileButton.create(context)
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

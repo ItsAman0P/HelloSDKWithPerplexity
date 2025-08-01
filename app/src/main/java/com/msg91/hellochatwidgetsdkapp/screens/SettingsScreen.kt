@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.msg91.chatwidget.ChatWidget
+import com.msg91.hellochatwidgetsdkapp.MainActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +39,9 @@ fun SettingsScreen(navController: NavController) {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    // File upload is now completely automatic - no test buttons needed
                 }
             )
         }
@@ -45,7 +49,6 @@ fun SettingsScreen(navController: NavController) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-//                .padding(paddingValues)
                 .windowInsetsPadding(WindowInsets.ime) // This handles keyboard
         ) {
             AndroidView(
@@ -53,7 +56,6 @@ fun SettingsScreen(navController: NavController) {
                     ChatWidget(
                         context = context,
                         helloConfig = helloConfig,
-//                    widgetColor = widgetColor,
                         isCloseButtonVisible = false, // No close button in embedded mode
                         useKeyboardAvoidingView = true
                     ).apply {

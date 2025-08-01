@@ -1,27 +1,19 @@
 package com.msg91.chatwidget
 
-//import com.onesignal.OneSignal
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.net.Uri
 import android.util.AttributeSet
-import android.view.ViewGroup
-import android.webkit.JavascriptInterface
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.fragment.app.FragmentActivity
 import com.msg91.chatwidget.service.HtmlBuilder
 import com.msg91.chatwidget.utils.LogUtil
-import org.json.JSONObject
-import kotlin.text.any
-import kotlin.text.startsWith
+import com.msg91.chatwidget.webview.ChatWebViewManager
 
 class ChatWidget @JvmOverloads constructor(
     context: Context,
@@ -33,26 +25,13 @@ class ChatWidget @JvmOverloads constructor(
 ) : FrameLayout(context, attrs) {
 
     private val helloConfig: MutableMap<String, Any> = helloConfig.toMutableMap()
-    private val JAVASCRIPT_INTERFACE: String = "ReactNativeWebView"
-
-    // Wrapper to receive system bar insets
-    private val container = FrameLayout(context)
-    private val webView = WebView(context)
-
-
+    private var chatWidgetFragment: ChatWidgetFragment? = null
+    private var isFragmentAdded = false
 
     init {
-
         validateConfig()
-//        setupStatusBar()
-//        setupSystemBarInsets()
-        setupWebView()
-        loadHtmlContent()
-//        applyKeyboardAvoiding()
-        setupKeyboardAnimation() // ✅ smooth animation
-
-//        setupKeyboardInsets()
-//        setupSmoothKeyboardAnimation()
+        // Try to setup with fragment first, fallback to direct WebView if not possible
+        setupWithFragment()
     }
 
     private fun validateConfig() {
@@ -61,118 +40,95 @@ class ChatWidget @JvmOverloads constructor(
         }
     }
 
-    private fun setupStatusBar() {
-        (context as? Activity)?.window?.let { window ->
-            WindowInsetsControllerCompat(window, window.decorView).apply {
-                isAppearanceLightStatusBars = true
+    /**
+     * Setup with fragment for proper file upload handling
+     */
+    private fun setupWithFragment() {
+        try {
+            val fragmentManager = findFragmentManager()
+            LogUtil.log("[ChatWidget] FragmentManager found: ${fragmentManager != null}")
+            
+            if (fragmentManager != null && !isFragmentAdded) {
+                chatWidgetFragment = ChatWidgetFragment.newInstance(
+                    helloConfig = helloConfig,
+                    widgetColor = widgetColor,
+                    isCloseButtonVisible = isCloseButtonVisible,
+                    useKeyboardAvoidingView = useKeyboardAvoidingView
+                )
+                
+                // Generate unique ID for this widget if it doesn't have one
+                if (id == NO_ID) {
+                    id = generateViewId()
+                }
+                
+                LogUtil.log("[ChatWidget] Adding fragment with ID: $id")
+                
+                fragmentManager.beginTransaction()
+                    .replace(id, chatWidgetFragment!!, "ChatWidget_$id")
+                    .commitNowAllowingStateLoss()
+                
+                isFragmentAdded = true
+                LogUtil.log("[ChatWidget] Successfully setup with fragment for proper file upload")
+            } else {
+                LogUtil.log("[ChatWidget] No FragmentManager available, using direct WebView")
+                // Fallback to direct WebView setup
+                setupWithDirectWebView()
             }
+        } catch (e: Exception) {
+            LogUtil.log("[ChatWidget] Failed to setup with fragment: ${e.message}, falling back to direct WebView")
+            e.printStackTrace()
+            setupWithDirectWebView()
         }
     }
 
-    private fun setupSystemBarInsets() {
-        ViewCompat.setOnApplyWindowInsetsListener(container) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+    private var fallbackWebViewManager: ChatWebViewManager? = null
 
-            // Apply top + bottom padding (bottom only if keyboard is NOT visible)
-            view.setPadding(
-                systemBars.left,
-                systemBars.top,
-                systemBars.right,
-                if (isImeVisible) 0 else systemBars.bottom
-            )
-
-            view.setBackgroundColor(Color.parseColor("#F5F5F5"))
-            insets
-        }
+    /**
+     * Fallback setup with direct WebView (file upload may not work properly)
+     */
+    private fun setupWithDirectWebView() {
+        LogUtil.log("[ChatWidget] Setting up with direct WebView - file upload may be limited")
+        
+        // WebView manager to handle all WebView-related functionality
+        fallbackWebViewManager = ChatWebViewManager(
+            context = context,
+            fragment = null, // No fragment available
+            filePickerLauncher = null, // No pre-registered launcher for fallback
+            onReload = { loadHtmlContentDirect() },
+            onClose = { /* Handle close if needed */ }
+        )
+        
+        // Add the webview container to this frame layout
+        addView(fallbackWebViewManager!!.getContainer())
+        loadHtmlContentDirect()
+        setupKeyboardAnimation()
     }
 
-    private fun setupWebView() {
-        webView.apply {
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-            settings.javaScriptEnabled = true
-            setBackgroundColor(Color.TRANSPARENT)
-            settings.allowFileAccess = true
-            settings.allowContentAccess = true
-//            webViewClient = WebViewClient()
-
-            settings.domStorageEnabled = true
-            addJavascriptInterface(
-                WebAppInterface(),
-                JAVASCRIPT_INTERFACE
-            )
-//          setBackgroundColor(Color.parseColor("#F5F5F5"))
-            // ✅ Handle URL loading behavior
-            webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest): Boolean {
-                    val url = request.url.toString()
-
-                    return if (
-                        url.startsWith("https://blacksea.msg91.com") ||
-                        url.startsWith("https://ctest.msg91.com") ||
-                        url.startsWith("about:blank")
-                    ) {
-                        false
-                    } else {
-                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, request.url)
-                        context.startActivity(intent)
-                        true
-                    }
-                }
-
-
+    /**
+     * Find FragmentManager from context
+     */
+    private fun findFragmentManager(): androidx.fragment.app.FragmentManager? {
+        var ctx = context
+        while (ctx is android.content.ContextWrapper) {
+            if (ctx is FragmentActivity) {
+                return ctx.supportFragmentManager
             }
+            ctx = ctx.baseContext
         }
-
-        container.apply {
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-            addView(webView)
-            setBackgroundColor(Color.TRANSPARENT)
-        }
-
-        addView(container)
+        return null
     }
 
-    // JavaScript interface to receive messages from the WebView
-    private inner class WebAppInterface {
-        @JavascriptInterface
-        fun postMessage(jsonMessage: String) {
-            LogUtil.log("[postMessage]: $jsonMessage")
-            val data = JSONObject(jsonMessage)
-            val type = data.optString("type")
-
-            when (type) {
-                "reload" -> {
-                    loadHtmlContent()
-                }
-                "close" -> {
-                    // You can optionally remove the view or call a callback if needed
-//                    (this.parent as? ViewGroup)?.removeView(this)
-                }
-                "uuid" -> {
-                    val uuid = data.optString("uuid")
-                    // Log or register UUID for co-browsing
-                    LogUtil.log("[postMessage]: [UUID]: $jsonMessage")
-                }
-                "downloadAttachment" -> {
-                    val downloadUrl = data.optString("url")
-                    if (downloadUrl.isNotBlank()) {
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl))
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                }
-                else -> {
-                    // Unknown event
-                    LogUtil.log("[postMessage]: [Unhandled Event]: $type")
-                }
-            }
-        }
+    /**
+     * Direct HTML loading for fallback mode
+     */
+    private fun loadHtmlContentDirect() {
+        val html = HtmlBuilder.buildWebViewHtml(
+            helloConfig = helloConfig,
+            widgetColor = widgetColor,
+            isCloseButtonVisible = isCloseButtonVisible
+        )
+        fallbackWebViewManager?.loadHtmlContent(html)
+        LogUtil.log("[ChatWidget] Direct HTML loading executed")
     }
 
     fun updateHelloConfig(newHelloConfig: Map<String, Any>) {
@@ -182,20 +138,13 @@ class ChatWidget @JvmOverloads constructor(
 
         helloConfig.clear()
         helloConfig.putAll(newHelloConfig)
-
-        // if newHelloConfig has "mail" or "unique_id" then
-//        CobrowseManager.getUuid()
-
-        loadHtmlContent()
-    }
-
-    private fun loadHtmlContent() {
-        val html = HtmlBuilder.buildWebViewHtml(
-            helloConfig = helloConfig,
-            widgetColor = widgetColor,
-            isCloseButtonVisible = isCloseButtonVisible
-        )
-        webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
+        
+        // Update fragment if available, otherwise fallback
+        if (isFragmentAdded && chatWidgetFragment != null) {
+            chatWidgetFragment?.updateHelloConfig(newHelloConfig)
+        } else {
+            loadHtmlContentDirect()
+        }
     }
 
     private fun setupKeyboardAnimation() {
@@ -213,13 +162,40 @@ class ChatWidget @JvmOverloads constructor(
         )
     }
 
-
     fun loadWidget() {
-        loadHtmlContent();
+        if (isFragmentAdded && chatWidgetFragment != null) {
+            chatWidgetFragment?.loadWidget()
+        } else {
+            loadHtmlContentDirect()
+        }
     }
 
     fun loadHtmlDirectly(html: String) {
-        webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
+        if (isFragmentAdded && chatWidgetFragment != null) {
+            chatWidgetFragment?.loadHtmlDirectly(html)
+        } else {
+            fallbackWebViewManager?.loadHtmlContent(html)
+            LogUtil.log("[ChatWidget] Direct HTML loaded via fallback WebView")
+        }
+    }
+    
+    /**
+     * Clean up resources when the widget is destroyed
+     */
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        try {
+            if (isFragmentAdded && chatWidgetFragment != null) {
+                // Fragment cleanup is handled by the fragment manager
+                LogUtil.log("[ChatWidget] Fragment-based widget detached")
+            } else {
+                fallbackWebViewManager?.cleanup()
+                LogUtil.log("[ChatWidget] Fallback WebView cleaned up")
+            }
+            LogUtil.log("[ChatWidget] Widget detached and cleaned up")
+        } catch (e: Exception) {
+            LogUtil.log("[ChatWidget] Error during cleanup: ${e.message}")
+        }
     }
 }
 
