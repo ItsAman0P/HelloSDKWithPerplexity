@@ -1,40 +1,47 @@
-package com.msg91.chatwidget.service
+package com.msg91.chatwidget
 
 import org.json.JSONObject
 
-object HtmlBuilder {
-
-    private const val scriptUrl: String = "https://blacksea.msg91.com/chat-widget.js"
-
-    fun buildWebViewHtml(
-        helloConfig: Map<String, Any>,
-        widgetColor: String?,
-        isCloseButtonVisible: Boolean
-    ): String {
+/**
+ * Single Responsibility: HTML content generation for the chat widget
+ * 
+ * Uses the existing HTML template and logic but organized in a clean,
+ * focused class that handles only HTML generation concerns.
+ */
+internal class HtmlGenerator {
+    
+    // Keep their original script URL
+    private val scriptUrl = "https://blacksea.msg91.com/chat-widget.js"
+    
+    /**
+     * Generate HTML content for the chat widget
+     * Using their existing logic and template
+     */
+    fun generateHtml(config: Map<String, Any>): String {
         val sdkConfig = mutableMapOf<String, Any>(
             "callBackWithoutClose" to true,
             "borderRadiusDisable" to true
         )
 
-        // ✅ Only add widgetColor if it is provided
+        // Only add widgetColor if it is provided (their existing logic)
+        val widgetColor = config["widgetColor"] as? String
         if (!widgetColor.isNullOrBlank()) {
             sdkConfig["customTheme"] = widgetColor
         }
 
-        val finalConfig = helloConfig + mapOf(
+        val finalConfig = config + mapOf(
             "sdkConfig" to sdkConfig,
             "isMobileSDK" to true,
-            "show_close_button" to isCloseButtonVisible
+            "show_close_button" to (config["isCloseButtonVisible"] ?: true)
         )
 
-        val configJson = JSONObject(finalConfig).toString()
+        val configJson = buildConfigJson(finalConfig)
 
-        println("[----Bohot Hard----]: $configJson")
-
-        val closeButtonHtml = if (isCloseButtonVisible) {
+        val closeButtonHtml = if (config["isCloseButtonVisible"] != false) {
             """<button class="close-button" onclick="closePage()" title="Close"></button>"""
         } else ""
 
+        // Using their exact HTML template
         return """
         <!DOCTYPE html>
         <html lang="en">
@@ -169,4 +176,47 @@ object HtmlBuilder {
         </html>
         """.trimIndent()
     }
+    
+    /**
+     * Build configuration JSON string
+     * Using their existing logic
+     */
+    private fun buildConfigJson(config: Map<String, Any>): String {
+        return try {
+            JSONObject(config).toString()
+        } catch (e: Exception) {
+            // Fallback to manual JSON building if needed
+            buildManualJson(config)
+        }
+    }
+    
+    /**
+     * Manual JSON building as fallback
+     */
+    private fun buildManualJson(config: Map<String, Any>): String {
+        val jsonParts = config.map { (key, value) ->
+            "\"${escapeJson(key)}\": ${formatValue(value)}"
+        }
+        return "{${jsonParts.joinToString(", ")}}"
+    }
+    
+    /**
+     * Format value for JSON
+     */
+    private fun formatValue(value: Any): String = when (value) {
+        is String -> "\"${escapeJson(value)}\""
+        is Number, is Boolean -> value.toString()
+        is Map<*, *> -> buildManualJson(value as Map<String, Any>)
+        else -> "\"${escapeJson(value.toString())}\""
+    }
+    
+    /**
+     * Escape JSON string
+     */
+    private fun escapeJson(str: String): String = str
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
 }

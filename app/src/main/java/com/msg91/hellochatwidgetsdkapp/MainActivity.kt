@@ -9,11 +9,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.msg91.chatwidget.ChatWidgetFragment
+import com.msg91.chatwidget.ChatSDK
 
 class MainActivity : AppCompatActivity() {
     
-    private lateinit var chatWidgetFragment: ChatWidgetFragment
+    private lateinit var chatSDK: ChatSDK
     private lateinit var emailEditText: EditText
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,20 +63,13 @@ class MainActivity : AppCompatActivity() {
         // Setup email field listeners for onblur and onsubmit
         setupEmailListeners()
 
-        // Attach the ChatWidgetFragment only if not already added
+        // Initialize the ChatSDK only if not already added
         if (savedInstanceState == null) {
+            chatSDK = ChatSDK.create()
             val helloConfig = createHelloConfig(emailEditText.text.toString().trim())
 
-            chatWidgetFragment = ChatWidgetFragment.newInstance(
-                helloConfig = helloConfig,
-                widgetColor = "#8686ac",
-                isCloseButtonVisible = false, // No close button in embedded mode
-                useKeyboardAvoidingView = true
-            )
-
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, chatWidgetFragment)
-                .commit()
+            val chatView = chatSDK.initialize(this, helloConfig)
+            findViewById<android.widget.FrameLayout>(R.id.fragment_container).addView(chatView)
         }
     }
     
@@ -86,7 +79,7 @@ class MainActivity : AppCompatActivity() {
             if (!hasFocus) {
                 // User finished editing, update the config
                 val email = emailEditText.text.toString().trim()
-                if (::chatWidgetFragment.isInitialized) {
+                if (::chatSDK.isInitialized) {
                     updateChatWidgetConfig(email)
                 }
             }
@@ -96,7 +89,7 @@ class MainActivity : AppCompatActivity() {
         emailEditText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_NEXT) {
                 val email = emailEditText.text.toString().trim()
-                if (::chatWidgetFragment.isInitialized) {
+                if (::chatSDK.isInitialized) {
                     updateChatWidgetConfig(email)
                 }
                 // Hide keyboard
@@ -109,7 +102,12 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun createHelloConfig(email: String): Map<String, Any> {
-        val config = mutableMapOf<String, Any>("widgetToken" to "ec5d6")
+        val config = mutableMapOf<String, Any>(
+            "widgetToken" to "ec5d6",
+            "widgetColor" to "#8686ac",
+            "isCloseButtonVisible" to false, // No close button in embedded mode
+            "useKeyboardAvoidingView" to true
+        )
         
         // Only include email key if email is not empty
         if (email.isNotEmpty()) {
@@ -122,7 +120,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateChatWidgetConfig(email: String) {
         try {
             val updatedConfig = createHelloConfig(email)
-            chatWidgetFragment.updateHelloConfig(updatedConfig)
+            chatSDK.update(updatedConfig)
         } catch (e: Exception) {
             // Handle any config update errors gracefully
             e.printStackTrace()

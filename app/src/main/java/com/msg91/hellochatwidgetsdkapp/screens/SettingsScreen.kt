@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
-import com.msg91.chatwidget.ChatWidget
+import com.msg91.chatwidget.ChatSDK
 import com.msg91.hellochatwidgetsdkapp.MainActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,7 +28,10 @@ fun SettingsScreen(navController: NavController) {
     var locationEnabled by remember { mutableStateOf(false) }
     val helloConfig = mapOf(
         "widgetToken" to "ec5d6",
-        "email" to "aman@example.com"
+        "mail" to "aman@example.com",
+        "widgetColor" to "#8686ac",
+        "isCloseButtonVisible" to false,
+        "useKeyboardAvoidingView" to true
     )
 
     Scaffold(
@@ -53,17 +56,8 @@ fun SettingsScreen(navController: NavController) {
         ) {
             AndroidView(
                 factory = { context ->
-                    ChatWidget(
-                        context = context,
-                        helloConfig = helloConfig,
-                        isCloseButtonVisible = false, // No close button in embedded mode
-                        useKeyboardAvoidingView = true
-                    ).apply {
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                    }
+                    val chatSDK = ChatSDK.create()
+                    chatSDK.initialize(context, helloConfig)
                 },
                 modifier = Modifier
                     .fillMaxSize()
