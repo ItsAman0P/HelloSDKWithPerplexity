@@ -8,11 +8,12 @@
 
     <!-- Header with back button and title -->
     <LinearLayout
+        android:id="@+id/header_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="#F5F5F5"
+        android:background="@color/header_purple"
         android:paddingHorizontal="16dp"
         android:paddingVertical="12dp"
         android:elevation="4dp">
@@ -24,6 +25,7 @@
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="Back"
             android:src="@drawable/ic_arrow_back"
+            android:tint="@color/white"
             android:scaleType="centerInside" />
 
         <TextView
@@ -33,9 +35,8 @@
             android:text="Contact Us"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:textColor="#333333"
-            android:gravity="center"
-            android:layout_marginEnd="40dp" />
+            android:textColor="@color/white"
+            android:layout_marginStart="12dp" />
 
     </LinearLayout>
 

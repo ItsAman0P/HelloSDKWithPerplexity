@@ -22,12 +22,12 @@ class CustomWebViewClient(
     }
     
     // Legacy method (older Android versions)
-    @Suppress("DEPRECATION")
-    override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-        LogUtil.log("🌐 [WebViewClient] Legacy shouldOverrideUrlLoading called: $url")
-        Toast.makeText(context, "🌐 Legacy URL: $url", Toast.LENGTH_SHORT).show()
-        return handleUrlLoading(url ?: "")
-    }
+//    @Suppress("DEPRECATION")
+//    override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+//        LogUtil.log("🌐 [WebViewClient] Legacy shouldOverrideUrlLoading called: $url")
+//        Toast.makeText(context, "🌐 Legacy URL: $url", Toast.LENGTH_SHORT).show()
+//        return handleUrlLoading(url ?: "")
+//    }
     
     private fun handleUrlLoading(url: String): Boolean {
         LogUtil.log("🎯 [WebViewClient] Processing URL: $url")

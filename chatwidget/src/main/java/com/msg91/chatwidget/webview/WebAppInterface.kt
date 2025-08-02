@@ -10,7 +10,7 @@ import org.json.JSONObject
 
 class WebAppInterface(
     private val context: Context,
-    private val onReload: () -> Unit,
+    private val onReloadWebview: () -> Unit,
     private val onClose: () -> Unit
 ) {
     
@@ -29,7 +29,7 @@ class WebAppInterface(
                 Toast.makeText(context, "✅ Interface Test Success!", Toast.LENGTH_LONG).show()
             }
             "reload" -> {
-                onReload()
+                onReloadWebview()
             }
             "close" -> {
                 onClose()
@@ -52,12 +52,7 @@ class WebAppInterface(
                     }
                 }
             }
-            "fileUploadTest" -> {
-                val files = data.optJSONArray("files")
-                LogUtil.log("[FileUpload] Test files selected: ${files?.toString()}")
-            }
             else -> {
-                // Unknown event
                 LogUtil.log("[postMessage]: [Unhandled Event]: $type")
             }
         }

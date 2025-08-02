@@ -14,7 +14,6 @@ class ChatWebViewManager(
     private val context: Context,
     private val fragment: Fragment? = null, // Fragment for proper Activity Result API
     private val filePickerLauncher: ActivityResultLauncher<Intent>? = null, // Pre-registered launcher
-    private val onReload: () -> Unit,
     private val onClose: () -> Unit
 ) {
     
@@ -52,14 +51,14 @@ class ChatWebViewManager(
             settings.domStorageEnabled = true
             
             // Enable file upload capabilities
-            settings.setSupportMultipleWindows(true)
+            // settings.setSupportMultipleWindows(true)
             settings.javaScriptCanOpenWindowsAutomatically = true
             
             // Enable mixed content (if needed for file uploads)
             settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             
             // Ensure URL loading callbacks are triggered
-            settings.loadsImagesAutomatically = true
+            // settings.loadsImagesAutomatically = true
             settings.setSupportZoom(false)
             settings.builtInZoomControls = false
             
@@ -68,8 +67,9 @@ class ChatWebViewManager(
             settings.setGeolocationEnabled(true)
             settings.cacheMode = WebSettings.LOAD_DEFAULT
 
+
             addJavascriptInterface(
-                WebAppInterface(context, onReload, onClose),
+                WebAppInterface(context, onReloadWebview = {onReloadWebview()}, onClose),
                 JAVASCRIPT_INTERFACE
             )
             
@@ -90,6 +90,10 @@ class ChatWebViewManager(
             addView(webView)
             setBackgroundColor(Color.TRANSPARENT)
         }
+    }
+
+    private fun onReloadWebview() {
+        webView.reload();
     }
     
     fun loadHtmlContent(html: String) {

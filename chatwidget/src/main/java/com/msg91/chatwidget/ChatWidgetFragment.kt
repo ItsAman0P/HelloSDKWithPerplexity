@@ -103,7 +103,6 @@ class ChatWidgetFragment : Fragment() {
             context = requireContext(),
             fragment = this, // Pass fragment for proper file upload handling
             filePickerLauncher = filePickerLauncher, // Pass pre-registered launcher
-            onReload = { loadHtmlContent() },
             onClose = { handleClose() }
         )
         
@@ -141,6 +140,8 @@ class ChatWidgetFragment : Fragment() {
             webViewManager.loadHtmlContent(html)
             LogUtil.log("[ChatWidgetFragment] HTML content loaded")
         }
+
+
     }
 
     private fun setupKeyboardAnimation() {

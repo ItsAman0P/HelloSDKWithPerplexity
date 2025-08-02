@@ -164,7 +164,6 @@ object HtmlBuilder {
                 <div class="error-message"></div>
                 <button class="reload-button" onclick="reloadPage()">Try Again</button>
             </div>
-            <script src="$scriptUrl" onload="handleScriptLoad()" onerror="handleScriptError()"></script>
         </body>
         </html>
         """.trimIndent()
