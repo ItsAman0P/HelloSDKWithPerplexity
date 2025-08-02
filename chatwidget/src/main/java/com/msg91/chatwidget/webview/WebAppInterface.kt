@@ -32,7 +32,7 @@ class WebAppInterface(
                 onReloadWebview()
             }
             "close" -> {
-                onClose()
+//                onClose()
             }
             "uuid" -> {
                 val uuid = data.optString("uuid")

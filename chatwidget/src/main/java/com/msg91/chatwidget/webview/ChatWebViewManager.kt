@@ -3,6 +3,8 @@ package com.msg91.chatwidget.webview
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.os.Handler
+import android.os.Looper
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.widget.FrameLayout
@@ -14,6 +16,7 @@ class ChatWebViewManager(
     private val context: Context,
     private val fragment: Fragment? = null, // Fragment for proper Activity Result API
     private val filePickerLauncher: ActivityResultLauncher<Intent>? = null, // Pre-registered launcher
+    private val onReload: () -> Unit,
     private val onClose: () -> Unit
 ) {
     
@@ -34,6 +37,41 @@ class ChatWebViewManager(
     fun getContainer(): FrameLayout = container
     
     fun getWebChromeClient(): CustomWebChromeClient = webChromeClient
+    
+    /**
+     * Internal reload method - can be called from anywhere within ChatWebViewManager
+     * or passed to WebAppInterface. Ensures WebView operations run on main thread.
+     */
+    private fun reloadWebView() {
+        try {
+            LogUtil.log("[ChatWebViewManager] Reloading WebView content")
+            
+            // Ensure WebView operations run on main thread
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    // Reload current page
+                    webView.reload()
+                    
+                    // Call external callback to notify parent components
+                    onReload()
+                    
+                    LogUtil.log("[ChatWebViewManager] WebView reload completed successfully")
+                } catch (e: Exception) {
+                    LogUtil.log("[ChatWebViewManager] Error during WebView reload on main thread: ${e.message}")
+                }
+            }
+            
+        } catch (e: Exception) {
+            LogUtil.log("[ChatWebViewManager] Error setting up WebView reload: ${e.message}")
+        }
+    }
+    
+    /**
+     * Public method for programmatic reload from external components
+     */
+    fun reload() {
+        reloadWebView()
+    }
 
     private fun setupWebView() {
         // Enable WebView debugging for console logs
@@ -69,7 +107,7 @@ class ChatWebViewManager(
 
 
             addJavascriptInterface(
-                WebAppInterface(context, onReloadWebview = {onReloadWebview()}, onClose),
+                WebAppInterface(context, ::reloadWebView, onClose),
                 JAVASCRIPT_INTERFACE
             )
             

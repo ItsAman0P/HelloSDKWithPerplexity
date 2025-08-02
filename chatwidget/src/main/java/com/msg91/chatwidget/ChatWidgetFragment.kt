@@ -1,6 +1,5 @@
 package com.msg91.chatwidget
 
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -13,11 +12,8 @@ import androidx.fragment.app.Fragment
 import com.msg91.chatwidget.service.HtmlBuilder
 import com.msg91.chatwidget.utils.LogUtil
 import com.msg91.chatwidget.webview.ChatWebViewManager
+import androidx.core.graphics.toColorInt
 
-/**
- * Fragment-based ChatWidget that properly handles file uploads and downloads
- * This fragment is designed to be used internally by ChatWidget or directly by consumers
- */
 class ChatWidgetFragment : Fragment() {
 
     companion object {
@@ -87,7 +83,7 @@ class ChatWidgetFragment : Fragment() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-            setBackgroundColor(Color.parseColor("#F5F5F5"))
+            setBackgroundColor("#F5F5F5".toColorInt())
         }
         return this.container
     }
@@ -103,6 +99,7 @@ class ChatWidgetFragment : Fragment() {
             context = requireContext(),
             fragment = this, // Pass fragment for proper file upload handling
             filePickerLauncher = filePickerLauncher, // Pass pre-registered launcher
+            onReload = { loadHtmlContent() },
             onClose = { handleClose() }
         )
         
@@ -163,16 +160,13 @@ class ChatWidgetFragment : Fragment() {
     private fun setupSystemBarInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(container) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
 
             // Apply left/right/bottom padding only (top is handled by parent activity)
-            // Bottom only if keyboard is NOT visible
             view.setPadding(
                 systemBars.left,
                 0, // Don't apply top padding - handled by parent
                 systemBars.right,
-                // if (isImeVisible) 0 else systemBars.bottom
-                0
+                0 // Bottom padding handled by parent activity
             )
 
             insets
@@ -197,7 +191,7 @@ class ChatWidgetFragment : Fragment() {
         helloConfig.clear()
         helloConfig.putAll(newHelloConfig)
         loadHtmlContent()
-        LogUtil.log("[ChatWidgetFragment] Configuration updated")
+        LogUtil.log("[ChatWidgetFragment] Configuration updated $newHelloConfig")
     }
 
     /**
