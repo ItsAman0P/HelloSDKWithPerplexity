@@ -12,6 +12,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import com.msg91.chatwidget.utils.LogUtil
+import com.msg91.chatwidget.upload.FileUploadManager
 import androidx.lifecycle.Lifecycle
 
 class CustomWebChromeClient(

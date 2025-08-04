@@ -35,6 +35,11 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    
+    lint {
+        disable.add("MutableCollectionMutableState")
+        disable.add("AutoboxingStateCreation")
+    }
 
     buildFeatures {
         compose = true

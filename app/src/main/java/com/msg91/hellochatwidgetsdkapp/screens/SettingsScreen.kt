@@ -1,6 +1,6 @@
 package com.msg91.hellochatwidgetsdkapp.screens
 
-import android.view.ViewGroup
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -14,10 +14,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
+
 import androidx.navigation.NavController
-import com.msg91.chatwidget.ChatWidget
-import com.msg91.hellochatwidgetsdkapp.MainActivity
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,15 +25,12 @@ fun SettingsScreen(navController: NavController) {
     var notificationsEnabled by remember { mutableStateOf(true) }
     var soundEnabled by remember { mutableStateOf(true) }
     var locationEnabled by remember { mutableStateOf(false) }
-    val helloConfig = mapOf(
-        "widgetToken" to "ec5d6",
-        "email" to "aman@example.com"
-    )
+
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Contact Us") },
+                title = { Text("Settings") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -46,30 +42,50 @@ fun SettingsScreen(navController: NavController) {
             )
         }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.ime) // This handles keyboard
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            AndroidView(
-                factory = { context ->
-                    ChatWidget(
-                        context = context,
-                        helloConfig = helloConfig,
-                        isCloseButtonVisible = false, // No close button in embedded mode
-                        useKeyboardAvoidingView = true
-                    ).apply {
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .background(Color(0xFFF5F5F5))
-            )
+            SettingsSection("Appearance") {
+                SettingsSwitchItem(
+                    icon = Icons.Default.Create,
+                    title = "Dark Mode",
+                    subtitle = "Switch between light and dark theme",
+                    checked = isDarkMode,
+                    onCheckedChange = { isDarkMode = it }
+                )
+            }
+
+            SettingsSection("Notifications") {
+                SettingsSwitchItem(
+                    icon = Icons.Default.Notifications,
+                    title = "Push Notifications",
+                    subtitle = "Receive notifications about new messages",
+                    checked = notificationsEnabled,
+                    onCheckedChange = { notificationsEnabled = it }
+                )
+                
+                SettingsSwitchItem(
+                    icon = Icons.Default.LocationOn,
+                    title = "Sound",
+                    subtitle = "Play sound for notifications",
+                    checked = soundEnabled,
+                    onCheckedChange = { soundEnabled = it }
+                )
+            }
+
+            SettingsSection("Privacy") {
+                SettingsSwitchItem(
+                    icon = Icons.Default.LocationOn,
+                    title = "Location Services",
+                    subtitle = "Allow app to access your location",
+                    checked = locationEnabled,
+                    onCheckedChange = { locationEnabled = it }
+                )
+            }
         }
     }
 }

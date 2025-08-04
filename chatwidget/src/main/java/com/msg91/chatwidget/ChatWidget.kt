@@ -1,201 +1,252 @@
 package com.msg91.chatwidget
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.graphics.Color
-import android.util.AttributeSet
-import android.widget.FrameLayout
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsAnimationCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
-import androidx.fragment.app.FragmentActivity
-import com.msg91.chatwidget.service.HtmlBuilder
+import androidx.fragment.app.Fragment
+import com.msg91.chatwidget.config.HelloConfig
+import com.msg91.chatwidget.core.ChatWidgetCore
 import com.msg91.chatwidget.utils.LogUtil
-import com.msg91.chatwidget.webview.ChatWebViewManager
 
-class ChatWidget @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    helloConfig: Map<String, Any>,
-    private val widgetColor: String? = null,
-    private val isCloseButtonVisible: Boolean = true,
-    private val useKeyboardAvoidingView: Boolean = true
-) : FrameLayout(context, attrs) {
-
-    private val helloConfig: MutableMap<String, Any> = helloConfig.toMutableMap()
-    private var chatWidgetFragment: ChatWidgetFragment? = null
-    private var isFragmentAdded = false
-
-    init {
-        validateConfig()
-        // Try to setup with fragment first, fallback to direct WebView if not possible
-        setupWithFragment()
-    }
-
-    private fun validateConfig() {
-        if (!helloConfig.containsKey("widgetToken")) {
-            throw IllegalArgumentException("Missing `widget_token` in helloConfig")
-        }
-    }
-
+/**
+ * Main entry point for the HelloChatWidget SDK.
+ * 
+ * This class follows the Facade pattern and provides a simplified interface
+ * to the complex ChatWidget subsystem. It implements SOLID principles:
+ * 
+ * - Single Responsibility: Provides a clean API for SDK consumers
+ * - Open/Closed: Extensible through dependency injection and configuration
+ * - Liskov Substitution: Can be extended without breaking consumers
+ * - Interface Segregation: Provides only essential methods to consumers
+ * - Dependency Inversion: Depends on abstractions (HelloConfig interface)
+ * 
+ * Usage:
+ * ```kotlin
+ * val config = HelloConfig("your-widget-token")
+ *     .withProperty("mail", "user@example.com")
+ * 
+ * ChatWidget.initialize(config)
+ * 
+ * // Later, to update configuration:
+ * val updatedConfig = config.withProperty("mail", "new@example.com")
+ * ChatWidget.update(updatedConfig)
+ * ```
+ */
+object ChatWidget {
+    
+    private const val TAG = "ChatWidget"
+    
+    // Internal reference to the core implementation
+    // This follows Dependency Inversion Principle by depending on abstraction
+    private var core: ChatWidgetCore? = null
+    private var isInitialized = false
+    
     /**
-     * Setup with fragment for proper file upload handling
+     * Initialize the ChatWidget SDK with the provided configuration.
+     * 
+     * This method must be called before any other widget operations.
+     * It sets up the widget with the provided HelloConfig and prepares
+     * it for use within a Fragment or Activity context.
+     * 
+     * @param helloConfig Configuration containing widgetToken and optional properties
+     * @throws IllegalArgumentException if configuration is invalid
+     * @throws IllegalStateException if already initialized (call update() instead)
      */
-    private fun setupWithFragment() {
+    @JvmStatic
+    fun initialize(helloConfig: HelloConfig) {
+        if (isInitialized) {
+            LogUtil.log("[$TAG] Already initialized. Use update() to change configuration.")
+            throw IllegalStateException("ChatWidget is already initialized. Use update() to change configuration.")
+        }
+        
+        LogUtil.log("[$TAG] Initializing ChatWidget SDK with config: ${helloConfig.toMap()}")
+        
         try {
-            val fragmentManager = findFragmentManager()
-            LogUtil.log("[ChatWidget] FragmentManager found: ${fragmentManager != null}")
+            // Validate configuration before proceeding
+            validateConfiguration(helloConfig)
             
-            if (fragmentManager != null && !isFragmentAdded) {
-                chatWidgetFragment = ChatWidgetFragment.newInstance(
-                    helloConfig = helloConfig,
-                    widgetColor = widgetColor,
-                    isCloseButtonVisible = isCloseButtonVisible,
-                    useKeyboardAvoidingView = useKeyboardAvoidingView
-                )
-                
-                // Generate unique ID for this widget if it doesn't have one
-                if (id == NO_ID) {
-                    id = generateViewId()
-                }
-                
-                LogUtil.log("[ChatWidget] Adding fragment with ID: $id")
-                
-                fragmentManager.beginTransaction()
-                    .replace(id, chatWidgetFragment!!, "ChatWidget_$id")
-                    .commitNowAllowingStateLoss()
-                
-                isFragmentAdded = true
-                LogUtil.log("[ChatWidget] Successfully setup with fragment for proper file upload")
-            } else {
-                LogUtil.log("[ChatWidget] No FragmentManager available, using direct WebView")
-                // Fallback to direct WebView setup
-                setupWithDirectWebView()
-            }
+            // Store the configuration
+            storeConfiguration(helloConfig)
+            
+            LogUtil.log("[$TAG] ChatWidget SDK initialized successfully")
+            isInitialized = true
+            
         } catch (e: Exception) {
-            LogUtil.log("[ChatWidget] Failed to setup with fragment: ${e.message}, falling back to direct WebView")
-            e.printStackTrace()
-            setupWithDirectWebView()
-        }
-    }
-
-    private var fallbackWebViewManager: ChatWebViewManager? = null
-
-    /**
-     * Fallback setup with direct WebView (file upload may not work properly)
-     */
-    private fun setupWithDirectWebView() {
-        LogUtil.log("[ChatWidget] Setting up with direct WebView - file upload may be limited")
-        
-        // WebView manager to handle all WebView-related functionality
-        fallbackWebViewManager = ChatWebViewManager(
-            context = context,
-            fragment = null, // No fragment available
-            filePickerLauncher = null, // No pre-registered launcher for fallback
-            onReload = { loadHtmlContentDirect() },
-            onClose = { /* Handle close if needed */ }
-        )
-        
-        // Add the webview container to this frame layout
-        addView(fallbackWebViewManager!!.getContainer())
-        loadHtmlContentDirect()
-        setupKeyboardAnimation()
-    }
-
-    /**
-     * Find FragmentManager from context
-     */
-    private fun findFragmentManager(): androidx.fragment.app.FragmentManager? {
-        var ctx = context
-        while (ctx is android.content.ContextWrapper) {
-            if (ctx is FragmentActivity) {
-                return ctx.supportFragmentManager
-            }
-            ctx = ctx.baseContext
-        }
-        return null
-    }
-
-    /**
-     * Direct HTML loading for fallback mode
-     */
-    private fun loadHtmlContentDirect() {
-        val html = HtmlBuilder.buildWebViewHtml(
-            helloConfig = helloConfig,
-            widgetColor = widgetColor,
-            isCloseButtonVisible = isCloseButtonVisible
-        )
-        fallbackWebViewManager?.loadHtmlContent(html)
-        LogUtil.log("[ChatWidget] Direct HTML loading executed")
-    }
-
-    fun updateHelloConfig(newHelloConfig: Map<String, Any>) {
-        if (!newHelloConfig.containsKey("widgetToken")) {
-            throw IllegalArgumentException("Missing `widgetToken` in updated helloConfig")
-        }
-
-        helloConfig.clear()
-        helloConfig.putAll(newHelloConfig)
-        
-        // Update fragment if available, otherwise fallback
-        if (isFragmentAdded && chatWidgetFragment != null) {
-            chatWidgetFragment?.updateHelloConfig(newHelloConfig)
-        } else {
-            loadHtmlContentDirect()
-        }
-    }
-
-    private fun setupKeyboardAnimation() {
-        ViewCompat.setWindowInsetsAnimationCallback(this,
-            object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
-                override fun onProgress(
-                    insets: WindowInsetsCompat,
-                    runningAnimations: MutableList<WindowInsetsAnimationCompat>
-                ): WindowInsetsCompat {
-                    val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-                    this@ChatWidget.translationY = -imeHeight.toFloat()
-                    return insets
-                }
-            }
-        )
-    }
-
-    fun loadWidget() {
-        if (isFragmentAdded && chatWidgetFragment != null) {
-            chatWidgetFragment?.loadWidget()
-        } else {
-            loadHtmlContentDirect()
-        }
-    }
-
-    fun loadHtmlDirectly(html: String) {
-        if (isFragmentAdded && chatWidgetFragment != null) {
-            chatWidgetFragment?.loadHtmlDirectly(html)
-        } else {
-            fallbackWebViewManager?.loadHtmlContent(html)
-            LogUtil.log("[ChatWidget] Direct HTML loaded via fallback WebView")
+            LogUtil.log("[$TAG] Failed to initialize ChatWidget SDK: ${e.message}")
+            throw e
         }
     }
     
     /**
-     * Clean up resources when the widget is destroyed
+     * Update the ChatWidget configuration.
+     * 
+     * This method allows updating the widget configuration after initialization.
+     * It can be used to change user information, widget settings, or any other
+     * configuration parameters.
+     * 
+     * @param helloConfig Updated configuration containing widgetToken and optional properties
+     * @throws IllegalArgumentException if configuration is invalid
+     * @throws IllegalStateException if not initialized (call initialize() first)
      */
-    override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
+    @JvmStatic
+    fun update(helloConfig: HelloConfig) {
+        if (!isInitialized) {
+            LogUtil.log("[$TAG] Not initialized. Call initialize() first.")
+            throw IllegalStateException("ChatWidget is not initialized. Call initialize() first.")
+        }
+        
+        LogUtil.log("[$TAG] Updating ChatWidget configuration: ${helloConfig.toMap()}")
+        
         try {
-            if (isFragmentAdded && chatWidgetFragment != null) {
-                // Fragment cleanup is handled by the fragment manager
-                LogUtil.log("[ChatWidget] Fragment-based widget detached")
-            } else {
-                fallbackWebViewManager?.cleanup()
-                LogUtil.log("[ChatWidget] Fallback WebView cleaned up")
-            }
-            LogUtil.log("[ChatWidget] Widget detached and cleaned up")
+            // Validate configuration before proceeding
+            validateConfiguration(helloConfig)
+            
+            // Store the updated configuration
+            storeConfiguration(helloConfig)
+            
+            // Update the core instance if it exists
+            core?.updateConfiguration(helloConfig)
+            
+            LogUtil.log("[$TAG] ChatWidget configuration updated successfully")
+            
         } catch (e: Exception) {
-            LogUtil.log("[ChatWidget] Error during cleanup: ${e.message}")
+            LogUtil.log("[$TAG] Failed to update ChatWidget configuration: ${e.message}")
+            throw e
         }
     }
+    
+    /**
+     * Create a ChatWidgetFragment for embedding in your UI.
+     * 
+     * This method creates a Fragment that can be added to your Activity or Fragment.
+     * The fragment will display the chat widget using the current configuration.
+     * 
+     * @param widgetColor Optional color theme for the widget
+     * @param isCloseButtonVisible Whether to show the close button (default: true)
+     * @param useKeyboardAvoidingView Whether to use keyboard avoiding behavior (default: true)
+     * @return ChatWidgetFragment ready to be added to your UI
+     * @throws IllegalStateException if not initialized
+     */
+    @JvmStatic
+    fun createFragment(
+        widgetColor: String? = null,
+        isCloseButtonVisible: Boolean = true,
+        useKeyboardAvoidingView: Boolean = true
+    ): Fragment {
+        if (!isInitialized) {
+            throw IllegalStateException("ChatWidget is not initialized. Call initialize() first.")
+        }
+        
+        // Return the refactored ChatWidgetFragment
+        // This maintains backward compatibility while using the new architecture internally
+        val config = getStoredConfiguration()
+            ?: throw IllegalStateException("No configuration available")
+        
+        return ChatWidgetFragment.newInstance(
+            helloConfig = config.toMap(),
+            widgetColor = widgetColor,
+            isCloseButtonVisible = isCloseButtonVisible,
+            useKeyboardAvoidingView = useKeyboardAvoidingView
+        )
+    }
+    
+    /**
+     * Get the current configuration.
+     * 
+     * @return Current HelloConfig or null if not initialized
+     */
+    @JvmStatic
+    fun getCurrentConfiguration(): HelloConfig {
+        if (!isInitialized) {
+            throw IllegalStateException("ChatWidget is not initialized.")
+        }
+        
+        return getStoredConfiguration()
+            ?: throw IllegalStateException("No configuration available")
+    }
+    
+    /**
+     * Check if the SDK is initialized.
+     * 
+     * @return true if initialized, false otherwise
+     */
+    @JvmStatic
+    fun isInitialized(): Boolean {
+        return isInitialized
+    }
+    
+    /**
+     * Clean up and destroy the ChatWidget SDK.
+     * 
+     * This method should be called when the SDK is no longer needed,
+     * typically in your Application's onTerminate() or when the user logs out.
+     */
+    @JvmStatic
+    fun destroy() {
+        LogUtil.log("[$TAG] Destroying ChatWidget SDK")
+        
+        try {
+            core?.destroy()
+            core = null
+            isInitialized = false
+            
+            LogUtil.log("[$TAG] ChatWidget SDK destroyed successfully")
+        } catch (e: Exception) {
+            LogUtil.log("[$TAG] Error during ChatWidget SDK destruction: ${e.message}")
+        }
+    }
+    
+    /**
+     * Internal method to get or create the core instance.
+     * This follows Dependency Inversion Principle by managing the core dependency.
+     */
+    internal fun getOrCreateCore(
+        context: Context,
+        fragment: Fragment? = null,
+        filePickerLauncher: androidx.activity.result.ActivityResultLauncher<android.content.Intent>? = null,
+        onClose: (() -> Unit)? = null
+    ): ChatWidgetCore {
+        if (core == null) {
+            core = ChatWidgetCore(
+                context = context,
+                fragment = fragment,
+                filePickerLauncher = filePickerLauncher,
+                onClose = onClose
+            )
+            core!!.initialize()
+        }
+        return core!!
+    }
+    
+    /**
+     * Validate the provided configuration.
+     * 
+     * @param config Configuration to validate
+     * @throws IllegalArgumentException if configuration is invalid
+     */
+    private fun validateConfiguration(config: HelloConfig) {
+        // HelloConfig constructor already validates widgetToken
+        // Additional SDK-level validation can be added here
+        
+        if (!config.hasProperty("widgetToken")) {
+            throw IllegalArgumentException("Configuration must contain a valid widgetToken")
+        }
+        
+        val widgetToken = config.getProperty("widgetToken") as? String
+        if (widgetToken.isNullOrBlank()) {
+            throw IllegalArgumentException("widgetToken cannot be null or blank")
+        }
+    }
+    
+    // Simple configuration storage for the facade
+    // In a production environment, this might use SharedPreferences or a database
+    private var currentConfig: HelloConfig? = null
+    
+    // Store current configuration when initializing or updating
+    private fun storeConfiguration(config: HelloConfig) {
+        currentConfig = config
+    }
+    
+    // Get stored configuration
+    private fun getStoredConfiguration(): HelloConfig? {
+        return currentConfig
+    }
 }
-

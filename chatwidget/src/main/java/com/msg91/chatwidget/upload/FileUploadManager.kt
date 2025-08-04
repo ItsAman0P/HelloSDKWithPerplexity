@@ -1,4 +1,4 @@
-package com.msg91.chatwidget.webview
+package com.msg91.chatwidget.upload
 
 import android.app.Activity
 import android.content.Context

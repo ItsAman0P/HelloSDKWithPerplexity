@@ -9,9 +9,9 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
-import com.msg91.chatwidget.service.HtmlBuilder
+import com.msg91.chatwidget.config.HelloConfig
+import com.msg91.chatwidget.core.ChatWidgetCore
 import com.msg91.chatwidget.utils.LogUtil
-import com.msg91.chatwidget.webview.ChatWebViewManager
 import androidx.core.graphics.toColorInt
 
 class ChatWidgetFragment : Fragment() {
@@ -45,16 +45,16 @@ class ChatWidgetFragment : Fragment() {
     private var isCloseButtonVisible: Boolean = true
     private var useKeyboardAvoidingView: Boolean = true
 
-    private lateinit var webViewManager: ChatWebViewManager
+    private lateinit var chatWidgetCore: ChatWidgetCore
     private lateinit var container: FrameLayout
     
     // Pre-register ActivityResultLauncher for file uploads
     private val filePickerLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        // Delegate result to WebViewManager when it's ready
-        if (::webViewManager.isInitialized) {
-            webViewManager.handleFilePickerResult(result.resultCode, result.data)
+        // Delegate result to ChatWidgetCore when it's ready
+        if (::chatWidgetCore.isInitialized) {
+            chatWidgetCore.handleFilePickerResult(result.resultCode, result.data)
         }
     }
 
@@ -94,18 +94,28 @@ class ChatWidgetFragment : Fragment() {
         LogUtil.log("[ChatWidgetFragment] onViewCreated started")
         LogUtil.log("[ChatWidgetFragment] Config: $helloConfig")
         
-        // Initialize WebView manager with fragment context for proper Activity Result API
-        webViewManager = ChatWebViewManager(
+        // Initialize ChatWidgetCore with fragment context for proper Activity Result API
+        chatWidgetCore = ChatWidgetCore(
             context = requireContext(),
             fragment = this, // Pass fragment for proper file upload handling
             filePickerLauncher = filePickerLauncher, // Pass pre-registered launcher
-            onReload = { loadHtmlContent() },
             onClose = { handleClose() }
         )
         
+        // Initialize the core
+        chatWidgetCore.initialize()
+        
+        // Configure the core with UI settings
+        chatWidgetCore.setWidgetColor(widgetColor)
+        chatWidgetCore.setCloseButtonVisible(isCloseButtonVisible)
+        chatWidgetCore.setKeyboardAvoidingView(useKeyboardAvoidingView)
+        
         // Add the webview container to our fragment's container
-        container.addView(webViewManager.getContainer())
-        LogUtil.log("[ChatWidgetFragment] WebView container added")
+        val coreContainer = chatWidgetCore.getContainer()
+        if (coreContainer != null) {
+            container.addView(coreContainer)
+            LogUtil.log("[ChatWidgetFragment] Core container added")
+        }
         
         // Setup keyboard handling if enabled
         if (useKeyboardAvoidingView) {
@@ -128,17 +138,15 @@ class ChatWidgetFragment : Fragment() {
     }
 
     private fun loadHtmlContent() {
-        if (::webViewManager.isInitialized) {
-            val html = HtmlBuilder.buildWebViewHtml(
-                helloConfig = helloConfig,
-                widgetColor = widgetColor,
-                isCloseButtonVisible = isCloseButtonVisible
-            )
-            webViewManager.loadHtmlContent(html)
-            LogUtil.log("[ChatWidgetFragment] HTML content loaded")
+        if (::chatWidgetCore.isInitialized) {
+            try {
+                val config = HelloConfig.fromMap(helloConfig)
+                chatWidgetCore.loadWidget(config)
+                LogUtil.log("[ChatWidgetFragment] Widget content loaded")
+            } catch (e: Exception) {
+                LogUtil.log("[ChatWidgetFragment] Error loading widget content: ${e.message}")
+            }
         }
-
-
     }
 
     private fun setupKeyboardAnimation() {
@@ -190,35 +198,35 @@ class ChatWidgetFragment : Fragment() {
 
         helloConfig.clear()
         helloConfig.putAll(newHelloConfig)
-        loadHtmlContent()
-        LogUtil.log("[ChatWidgetFragment] Configuration updated $newHelloConfig")
+        
+        if (::chatWidgetCore.isInitialized) {
+            try {
+                val config = HelloConfig.fromMap(helloConfig)
+                chatWidgetCore.updateConfiguration(config)
+                LogUtil.log("[ChatWidgetFragment] Configuration updated via core: $newHelloConfig")
+            } catch (e: Exception) {
+                LogUtil.log("[ChatWidgetFragment] Error updating configuration: ${e.message}")
+                // Fallback to direct load
+                loadHtmlContent()
+            }
+        }
     }
 
     /**
      * Reload the widget content
      */
     fun loadWidget() {
-        loadHtmlContent()
-    }
-
-    /**
-     * Load HTML content directly
-     */
-    fun loadHtmlDirectly(html: String) {
-        if (::webViewManager.isInitialized) {
-            webViewManager.loadHtmlContent(html)
+        if (::chatWidgetCore.isInitialized) {
+            chatWidgetCore.reloadWidget()
+        } else {
+            loadHtmlContent()
         }
     }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        try {
-            if (::webViewManager.isInitialized) {
-                webViewManager.cleanup()
-            }
-            LogUtil.log("[ChatWidgetFragment] Fragment destroyed and cleaned up")
-        } catch (e: Exception) {
-            LogUtil.log("[ChatWidgetFragment] Error during cleanup: ${e.message}")
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::chatWidgetCore.isInitialized) {
+            chatWidgetCore.destroy()
         }
     }
 }
