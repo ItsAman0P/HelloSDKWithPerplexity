@@ -7,7 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.Toast
+//import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
@@ -27,37 +27,37 @@ class UploadFileButton(context: Context) : Button(context) {
         
         // Set click listener
         setOnClickListener {
-            Toast.makeText(context, "Button clicked!", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(context, "Button clicked!", Toast.LENGTH_SHORT).show()
             launchFilePicker()
         }
     }
     
     private fun launchFilePicker() {
         try {
-            Toast.makeText(context, "Starting file picker process...", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(context, "Starting file picker process...", Toast.LENGTH_SHORT).show()
             
             val activity = context as? FragmentActivity
             if (activity != null) {
-                Toast.makeText(context, "Activity found: ${activity::class.simpleName}", Toast.LENGTH_SHORT).show()
+//                Toast.makeText(context, "Activity found: ${activity::class.simpleName}", Toast.LENGTH_SHORT).show()
                 
                 // Create and add headless fragment to handle file picking
                 val fragment = FilePickerFragment { uri ->
                     handleFileSelection(uri)
                 }
                 
-                Toast.makeText(context, "Fragment created, adding to manager...", Toast.LENGTH_SHORT).show()
+//                Toast.makeText(context, "Fragment created, adding to manager...", Toast.LENGTH_SHORT).show()
                 
                 activity.supportFragmentManager
                     .beginTransaction()
                     .add(fragment, "file_picker_fragment_${System.currentTimeMillis()}")
                     .commitAllowingStateLoss()
                     
-                Toast.makeText(context, "Fragment transaction committed", Toast.LENGTH_SHORT).show()
+//                Toast.makeText(context, "Fragment transaction committed", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context, "Context is not FragmentActivity: ${context::class.simpleName}", Toast.LENGTH_LONG).show()
+//                Toast.makeText(context, "Context is not FragmentActivity: ${context::class.simpleName}", Toast.LENGTH_LONG).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+//            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
             e.printStackTrace()
         }
     }
@@ -67,7 +67,7 @@ class UploadFileButton(context: Context) : Button(context) {
         if (uri != null) {
             // Get file name for display
             val fileName = getFileName(uri)
-            Toast.makeText(context, "File selected: $fileName", Toast.LENGTH_LONG).show()
+//            Toast.makeText(context, "File selected: $fileName", Toast.LENGTH_LONG).show()
             
             // Update button text to show selected file
             text = "File: $fileName"
@@ -75,7 +75,7 @@ class UploadFileButton(context: Context) : Button(context) {
             // Process the selected file
             processSelectedFile(uri)
         } else {
-            Toast.makeText(context, "No file selected", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(context, "No file selected", Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -106,17 +106,17 @@ class UploadFileButton(context: Context) : Button(context) {
             val fileSize = inputStream?.available() ?: 0
             inputStream?.close()
             
-            Toast.makeText(
-                context, 
-                "File ready for processing (Size: ${fileSize} bytes)", 
-                Toast.LENGTH_SHORT
-            ).show()
+//            Toast.makeText(
+//                context,
+//                "File ready for processing (Size: ${fileSize} bytes)",
+//                Toast.LENGTH_SHORT
+//            ).show()
             
             // TODO: Add your specific file processing logic here
             // Example: uploadToServer(uri), processFileContent(uri), etc.
             
         } catch (e: Exception) {
-            Toast.makeText(context, "Error processing file: ${e.message}", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(context, "Error processing file: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -182,7 +182,7 @@ class FilePickerFragment(
             // Launch file picker for all file types
             filePickerLauncher.launch("*/*")
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Error launching file picker: ${e.message}", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(requireContext(), "Error launching file picker: ${e.message}", Toast.LENGTH_SHORT).show()
             // Remove fragment on error
             parentFragmentManager.beginTransaction()
                 .remove(this)

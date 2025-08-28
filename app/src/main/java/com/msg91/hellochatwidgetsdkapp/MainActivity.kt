@@ -1,20 +1,23 @@
 package com.msg91.hellochatwidgetsdkapp
 
+import android.app.AlertDialog
 import android.os.Bundle
-import android.view.inputmethod.EditorInfo
-import android.widget.EditText
+import android.view.LayoutInflater
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.Button
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.android.material.textfield.TextInputEditText
 import com.msg91.chatwidget.ChatWidget
 import com.msg91.chatwidget.config.HelloConfig
 
 class MainActivity : AppCompatActivity() {
     
-    private lateinit var emailEditText: EditText
+    private var currentWidgetToken = "ec5d6"
+    private var currentEmail = ""
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,15 +60,14 @@ class MainActivity : AppCompatActivity() {
             onBackPressedDispatcher.onBackPressed()
         }
 
-        // Initialize email field
-        emailEditText = findViewById(R.id.et_email)
-        
-        // Setup email field listeners for onblur and onsubmit
-        setupEmailListeners()
+        // Setup config button
+        findViewById<ImageButton>(R.id.btn_config).setOnClickListener {
+            showConfigDialog()
+        }
 
         // Initialize ChatWidget SDK only if not already added
         if (savedInstanceState == null) {
-            val helloConfig = createHelloConfig(emailEditText.text.toString().trim())
+            val helloConfig = createHelloConfig()
             
             // Initialize the ChatWidget SDK with the new API
             ChatWidget.initialize(helloConfig)
@@ -83,44 +85,57 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun setupEmailListeners() {
-        // Update on focus lost (onblur equivalent)
-        emailEditText.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus) {
-                // User finished editing, update the config
-                val email = emailEditText.text.toString().trim()
-                updateChatWidgetConfig(email)
+    private fun showConfigDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_config, null)
+        
+        val widgetTokenInput = dialogView.findViewById<TextInputEditText>(R.id.et_widget_token)
+        val emailInput = dialogView.findViewById<TextInputEditText>(R.id.et_email_config)
+        
+        // Pre-populate with current values
+        widgetTokenInput.setText(currentWidgetToken)
+        emailInput.setText(currentEmail)
+        
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+        
+        // Handle button clicks
+        dialogView.findViewById<Button>(R.id.btn_cancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        dialogView.findViewById<Button>(R.id.btn_save).setOnClickListener {
+            val newWidgetToken = widgetTokenInput.text.toString().trim()
+            val newEmail = emailInput.text.toString().trim()
+            
+            if (newWidgetToken.isNotEmpty()) {
+                currentWidgetToken = newWidgetToken
+                currentEmail = newEmail
+                updateChatWidgetConfig()
+                dialog.dismiss()
+            } else {
+                widgetTokenInput.error = "Widget token is required"
             }
         }
         
-        // Update when user presses enter (onsubmit equivalent)
-        emailEditText.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_NEXT) {
-                val email = emailEditText.text.toString().trim()
-                updateChatWidgetConfig(email)
-                // Hide keyboard
-                emailEditText.clearFocus()
-                true
-            } else {
-                false
-            }
-        }
+        dialog.show()
     }
     
-    private fun createHelloConfig(email: String): HelloConfig {
-        val builder = HelloConfig.builder("ec5d6")
+    private fun createHelloConfig(): HelloConfig {
+        val builder = HelloConfig.builder(currentWidgetToken)
         
         // Only include email key if email is not empty
-        if (email.isNotEmpty()) {
-            builder.addProperty("mail", email)
+        if (currentEmail.isNotEmpty()) {
+            builder.addProperty("mail", currentEmail)
         }
         
         return builder.build()
     }
     
-    private fun updateChatWidgetConfig(email: String) {
+    private fun updateChatWidgetConfig() {
         try {
-            val updatedConfig = createHelloConfig(email)
+            val updatedConfig = createHelloConfig()
             ChatWidget.update(updatedConfig)
         } catch (e: Exception) {
             // Handle any config update errors gracefully

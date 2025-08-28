@@ -228,5 +228,7 @@ class ChatWidgetFragment : Fragment() {
         if (::chatWidgetCore.isInitialized) {
             chatWidgetCore.destroy()
         }
+        // Unregister this fragment from the ChatWidget
+        ChatWidget.unregisterFragment(this)
     }
 }

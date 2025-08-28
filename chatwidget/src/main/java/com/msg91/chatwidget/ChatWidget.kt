@@ -39,6 +39,9 @@ object ChatWidget {
     private var core: ChatWidgetCore? = null
     private var isInitialized = false
     
+    // Keep track of active fragment instances to notify them of config updates
+    private val activeFragments = mutableSetOf<ChatWidgetFragment>()
+    
     /**
      * Initialize the ChatWidget SDK with the provided configuration.
      * 
@@ -105,6 +108,17 @@ object ChatWidget {
             // Update the core instance if it exists
             core?.updateConfiguration(helloConfig)
             
+            // Update all active fragment instances
+            val configMap = helloConfig.toMap()
+            activeFragments.forEach { fragment ->
+                try {
+                    fragment.updateHelloConfig(configMap)
+                    LogUtil.log("[$TAG] Updated fragment configuration")
+                } catch (e: Exception) {
+                    LogUtil.log("[$TAG] Error updating fragment configuration: ${e.message}")
+                }
+            }
+            
             LogUtil.log("[$TAG] ChatWidget configuration updated successfully")
             
         } catch (e: Exception) {
@@ -140,12 +154,17 @@ object ChatWidget {
         val config = getStoredConfiguration()
             ?: throw IllegalStateException("No configuration available")
         
-        return ChatWidgetFragment.newInstance(
+        val fragment = ChatWidgetFragment.newInstance(
             helloConfig = config.toMap(),
             widgetColor = widgetColor,
             isCloseButtonVisible = isCloseButtonVisible,
             useKeyboardAvoidingView = useKeyboardAvoidingView
         )
+        
+        // Register the fragment for future configuration updates
+        registerFragment(fragment)
+        
+        return fragment
     }
     
     /**
@@ -187,11 +206,32 @@ object ChatWidget {
             core?.destroy()
             core = null
             isInitialized = false
+            activeFragments.clear()
             
             LogUtil.log("[$TAG] ChatWidget SDK destroyed successfully")
         } catch (e: Exception) {
             LogUtil.log("[$TAG] Error during ChatWidget SDK destruction: ${e.message}")
         }
+    }
+    
+    /**
+     * Register a fragment instance for configuration updates.
+     * This is called internally when fragments are created.
+     */
+    @JvmStatic
+    internal fun registerFragment(fragment: ChatWidgetFragment) {
+        activeFragments.add(fragment)
+        LogUtil.log("[$TAG] Fragment registered, active count: ${activeFragments.size}")
+    }
+    
+    /**
+     * Unregister a fragment instance.
+     * This should be called when fragments are destroyed.
+     */
+    @JvmStatic
+    internal fun unregisterFragment(fragment: ChatWidgetFragment) {
+        activeFragments.remove(fragment)
+        LogUtil.log("[$TAG] Fragment unregistered, active count: ${activeFragments.size}")
     }
     
     /**

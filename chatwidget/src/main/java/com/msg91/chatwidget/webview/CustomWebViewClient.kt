@@ -6,7 +6,7 @@ import android.net.Uri
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
+//import android.widget.Toast
 import com.msg91.chatwidget.utils.LogUtil
 
 class CustomWebViewClient(
@@ -17,7 +17,7 @@ class CustomWebViewClient(
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
         val url = request.url.toString()
         LogUtil.log("🌐 [WebViewClient] Modern shouldOverrideUrlLoading called: $url")
-        Toast.makeText(context, "🌐 Modern URL: $url", Toast.LENGTH_SHORT).show()
+//        Toast.makeText(context, "🌐 Modern URL: $url", Toast.LENGTH_SHORT).show()
         return handleUrlLoading(url)
     }
     
@@ -42,7 +42,7 @@ class CustomWebViewClient(
             false  // Let WebView handle it
         } else {
             LogUtil.log("🔗 [WebViewClient] Opening in external browser: $url")
-            Toast.makeText(context, "Opening: $url", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(context, "Opening: $url", Toast.LENGTH_SHORT).show()
             
             try {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))

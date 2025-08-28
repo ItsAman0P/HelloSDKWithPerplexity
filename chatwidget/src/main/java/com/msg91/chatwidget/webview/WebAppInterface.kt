@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.webkit.JavascriptInterface
-import android.widget.Toast
+//import android.widget.Toast
 import com.msg91.chatwidget.utils.LogUtil
 import org.json.JSONObject
 
@@ -17,7 +17,7 @@ class WebAppInterface(
     @JavascriptInterface
     fun postMessage(jsonMessage: String) {
         LogUtil.log("🔥 [JavascriptInterface] postMessage called: $jsonMessage")
-        Toast.makeText(context, "Interface working! Message: $jsonMessage", Toast.LENGTH_SHORT).show()
+//        Toast.makeText(context, "Interface working! Message: $jsonMessage", Toast.LENGTH_SHORT).show()
         val data = JSONObject(jsonMessage)
         val type = data.optString("type")
 
@@ -26,7 +26,7 @@ class WebAppInterface(
             "test" -> {
                 val message = data.optString("message")
                 LogUtil.log("🎯 [TEST] Interface working! Message: $message")
-                Toast.makeText(context, "✅ Interface Test Success!", Toast.LENGTH_LONG).show()
+//                Toast.makeText(context, "✅ Interface Test Success!", Toast.LENGTH_LONG).show()
             }
             "reload" -> {
                 onReloadWebview()
@@ -40,7 +40,7 @@ class WebAppInterface(
                 LogUtil.log("[postMessage]: [UUID]: $jsonMessage")
             }
             "downloadAttachment" -> {
-                Toast.makeText(context, "Download se", Toast.LENGTH_SHORT).show()
+//                Toast.makeText(context, "Download se", Toast.LENGTH_SHORT).show()
                 val downloadUrl = data.optString("url")
                 if (downloadUrl.isNotBlank()) {
                     try {
